@@ -1,5 +1,7 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
 exports.Client = void 0;
 const fs_1 = require("fs");
 const path_1 = require("path");
@@ -93,8 +95,7 @@ class Client {
             if (res instanceof Error) {
                 // The connection has been destroyed by the FTPContext at this point.
                 task.reject(res);
-            }
-            else if ((0, parseControlResponse_1.positiveCompletion)(res.code)) {
+            } else if ((0, parseControlResponse_1.positiveCompletion)(res.code)) {
                 task.resolve(res);
             }
             // Reject all other codes, including 120 "Service ready in nnn minutes".
@@ -123,12 +124,13 @@ class Client {
     sendIgnoringError(command) {
         return this.ftp.handle(command, (res, task) => {
             if (res instanceof FtpContext_1.FTPError) {
-                task.resolve({ code: res.code, message: res.message });
-            }
-            else if (res instanceof Error) {
+                task.resolve({
+                    code: res.code,
+                    message: res.message
+                });
+            } else if (res instanceof Error) {
                 task.reject(res);
-            }
-            else {
+            } else {
                 task.resolve(res);
             }
         });
@@ -157,14 +159,11 @@ class Client {
         return this.ftp.handle("USER " + user, (res, task) => {
             if (res instanceof Error) {
                 task.reject(res);
-            }
-            else if ((0, parseControlResponse_1.positiveCompletion)(res.code)) { // User logged in proceed OR Command superfluous
+            } else if ((0, parseControlResponse_1.positiveCompletion)(res.code)) { // User logged in proceed OR Command superfluous
                 task.resolve(res);
-            }
-            else if (res.code === 331) { // User name okay, need password
+            } else if (res.code === 331) { // User name okay, need password
                 this.ftp.send("PASS " + password);
-            }
-            else { // Also report error on 332 (Need account)
+            } else { // Also report error on 332 (Need account)
                 task.reject(new FtpContext_1.FTPError(res));
             }
         });
@@ -209,8 +208,7 @@ class Client {
         let welcome;
         if (useImplicitTLS) {
             welcome = await this.connectImplicitTLS(options.host, options.port, options.secureOptions);
-        }
-        else {
+        } else {
             welcome = await this.connect(options.host, options.port);
         }
         if (useExplicitTLS) {
@@ -378,8 +376,7 @@ class Client {
         });
         try {
             return await this._uploadFromStream(source, remotePath, command);
-        }
-        finally {
+        } finally {
             await ignoreError(() => fsClose(fd));
         }
     }
@@ -401,8 +398,7 @@ class Client {
                 remotePath: validPath,
                 type: "upload"
             });
-        }
-        finally {
+        } finally {
             source.removeListener("error", onError);
         }
     }
@@ -439,8 +435,7 @@ class Client {
         });
         try {
             return await this._downloadToStream(destination, remotePath, startAt);
-        }
-        catch (err) {
+        } catch (err) {
             const localFileStats = await ignoreError(() => fsStat(localPath));
             const hasDownloadedData = localFileStats && localFileStats.size > 0;
             const shouldRemoveLocalFile = !appendingToLocalFile && !hasDownloadedData;
@@ -448,8 +443,7 @@ class Client {
                 await ignoreError(() => fsUnlink(localPath));
             }
             throw err;
-        }
-        finally {
+        } finally {
             await ignoreError(() => fsClose(fd));
         }
     }
@@ -471,8 +465,7 @@ class Client {
                 remotePath: validPath,
                 type: "download"
             });
-        }
-        finally {
+        } finally {
             destination.removeListener("error", onError);
             destination.end();
         }
@@ -493,8 +486,7 @@ class Client {
                 // Use successful candidate for all subsequent requests.
                 this.availableListCommands = [candidate];
                 return parsedList;
-            }
-            catch (err) {
+            } catch (err) {
                 const shouldTryNext = err instanceof FtpContext_1.FTPError;
                 if (!shouldTryNext) {
                     throw err;
@@ -535,7 +527,11 @@ class Client {
             await this.clearWorkingDir();
             if (remoteDirPath !== "/") {
                 await this.cdup();
-                await this.removeEmptyDir(remoteDirPath);
+                if (remoteDirPath.startsWith("/")) {
+                    await this.removeEmptyDir(remoteDirPath)
+                } else {
+                    await this.removeEmptyDir(remoteDirPath.replace(/.*\//, ''))
+                }
             }
         });
     }
@@ -550,8 +546,7 @@ class Client {
                 await this.clearWorkingDir();
                 await this.cdup();
                 await this.removeEmptyDir(file.name);
-            }
-            else {
+            } else {
                 await this.remove(file.name);
             }
         }
@@ -586,8 +581,7 @@ class Client {
             const stats = await fsStat(fullPath);
             if (stats.isFile()) {
                 await this.uploadFrom(fullPath, file);
-            }
-            else if (stats.isDirectory()) {
+            } else if (stats.isDirectory()) {
                 await this._openDir(file);
                 await this._uploadToWorkingDir(fullPath);
                 await this.cdup();
@@ -619,8 +613,7 @@ class Client {
                 await this.cd(file.name);
                 await this._downloadFromWorkingDir(localPath);
                 await this.cdup();
-            }
-            else if (file.isFile) {
+            } else if (file.isFile) {
                 await this.downloadTo(localPath, file.name);
             }
         }
@@ -673,8 +666,7 @@ class Client {
         const userDir = await this.pwd();
         try {
             return await func();
-        }
-        finally {
+        } finally {
             if (!this.closed) {
                 await ignoreError(() => this.cd(userDir));
             }
@@ -696,8 +688,7 @@ class Client {
                     ftp.log("Optimal transfer strategy found.");
                     this.prepareTransfer = strategy; // eslint-disable-line require-atomic-updates
                     return res;
-                }
-                catch (err) {
+                } catch (err) {
                     // Try the next candidate no matter the exact error. It's possible that a server
                     // answered incorrectly to a strategy, for example a PASV answer to an EPSV.
                     lastError = err;
@@ -751,16 +742,16 @@ exports.Client = Client;
 async function ensureLocalDirectory(path) {
     try {
         await fsStat(path);
-    }
-    catch (err) {
-        await fsMkDir(path, { recursive: true });
+    } catch (err) {
+        await fsMkDir(path, {
+            recursive: true
+        });
     }
 }
 async function ignoreError(func) {
     try {
         return await func();
-    }
-    catch (err) {
+    } catch (err) {
         // Ignore
         return undefined;
     }
